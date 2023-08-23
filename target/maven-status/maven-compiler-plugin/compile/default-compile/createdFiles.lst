@@ -1,6 +1,7 @@
 com\ce1103\chatservice\ChatService.class
-com\ce1103\chatservice\Client$2.class
 com\ce1103\chatservice\Server.class
+com\ce1103\chatservice\Client.class
+com\ce1103\chatservice\Client$2.class
+com\ce1103\chatservice\Server$2.class
 com\ce1103\chatservice\Client$1.class
 com\ce1103\chatservice\Server$1.class
-com\ce1103\chatservice\Client.class
