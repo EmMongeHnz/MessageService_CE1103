@@ -124,7 +124,7 @@ public class Server extends javax.swing.JFrame implements Runnable {
 
                 messageLog.append("\n\n" + username + ": " + message);
 
-                Socket sendBack = new Socket("127.0.0.1", 1234);
+                Socket sendBack = new Socket(reader_socket.getInetAddress(), 9090);
 
                 ObjectOutputStream pck_sendBack = new ObjectOutputStream(sendBack.getOutputStream());
 

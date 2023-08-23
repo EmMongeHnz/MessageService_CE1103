@@ -209,15 +209,13 @@ public class Client extends javax.swing.JFrame implements Runnable{
 
         try{
 
-            ServerSocket client_socket = new ServerSocket(1234);
-
-            Socket client;
+            ServerSocket client_socket = new ServerSocket(9090);
 
             PaqueteEnvio pck_received;
 
             while(true){
 
-                client = client_socket.accept();
+                Socket client = client_socket.accept();
 
                 ObjectInputStream inputFlow = new ObjectInputStream(client.getInputStream());
 
