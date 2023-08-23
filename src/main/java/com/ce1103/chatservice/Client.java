@@ -5,12 +5,16 @@
 package com.ce1103.chatservice;
 
 import java.io.DataOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.net.ServerSocket;
 import java.net.Socket;
 /**
  *
  * @author monge
  */
-public class Client extends javax.swing.JFrame {
+public class Client extends javax.swing.JFrame implements Runnable{
 
     /**
      * Creates new form Client
@@ -25,6 +29,9 @@ public class Client extends javax.swing.JFrame {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+
+        Thread myThread = new Thread(this);
+        myThread.start();
 
         label_IP = new javax.swing.JLabel();
         tf_ip = new javax.swing.JTextField();
@@ -126,16 +133,22 @@ public class Client extends javax.swing.JFrame {
         String target_port = tf_port.getText();
         int intPort = Integer.parseInt(target_port);
         try{
-            Socket socket = new Socket(tf_ip.getText(),intPort);
-            DataOutputStream send = new DataOutputStream(socket.getOutputStream());
+            Socket socket = new Socket("127.0.0.1",intPort);
 
-            send.writeUTF(tf_user.getText() + ": " + tf_message.getText());
+            PaqueteEnvio data = new PaqueteEnvio();
 
-            messageLog.append("\n\nMe: " + tf_message.getText());
+            data.setUsername(tf_user.getText());
+            data.setMessage(tf_message.getText());
 
-            tf_message.setText("");
+            ObjectOutputStream pck_data = new ObjectOutputStream(socket.getOutputStream());
 
+            pck_data.writeObject(data);
 
+            //DataOutputStream send = new DataOutputStream(socket.getOutputStream());
+
+            //send.writeUTF(tf_user.getText() + ": " + tf_message.getText());
+
+            //tf_message.setText("");
 
             socket.close();
         } catch(Exception e){
@@ -190,5 +203,54 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JTextField tf_message;
     private javax.swing.JTextField tf_port;
     private javax.swing.JTextField tf_user;
+
+    @Override
+    public void run() {
+
+        try{
+
+            ServerSocket client_socket = new ServerSocket(1234);
+
+            Socket client;
+
+            PaqueteEnvio pck_received;
+
+            while(true){
+
+                client = client_socket.accept();
+
+                ObjectInputStream inputFlow = new ObjectInputStream(client.getInputStream());
+
+                pck_received =(PaqueteEnvio) inputFlow.readObject();
+
+                messageLog.append("\n\n" + pck_received.getUsername() + ": " + pck_received.getMessage());
+            }
+
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+    }
     // End of variables declaration//GEN-END:variables
+}
+
+class PaqueteEnvio implements Serializable {
+    private String username, message;
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
 }

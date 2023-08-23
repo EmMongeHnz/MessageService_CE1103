@@ -5,8 +5,11 @@
 package com.ce1103.chatservice;
 
 import java.io.DataInputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  *
@@ -105,13 +108,31 @@ public class Server extends javax.swing.JFrame implements Runnable {
         try{
             ServerSocket server = new ServerSocket(1234);
 
+            String username, message;
+
+            PaqueteEnvio pck_received;
+
             while (true) {
 
                 Socket reader_socket = server.accept();
-                DataInputStream read_message = new DataInputStream(reader_socket.getInputStream());
 
-                String received_message = read_message.readUTF();
-                messageLog.append("\n\n" + received_message);
+                ObjectInputStream pck_data = new ObjectInputStream(reader_socket.getInputStream());
+                pck_received= (PaqueteEnvio) pck_data.readObject();
+
+                username = pck_received.getUsername();
+                message = pck_received.getMessage();
+
+                messageLog.append("\n\n" + username + ": " + message);
+
+                Socket sendBack = new Socket("127.0.0.1", 1234);
+
+                ObjectOutputStream pck_sendBack = new ObjectOutputStream(sendBack.getOutputStream());
+
+                pck_sendBack.writeObject(pck_received);
+
+                sendBack.close();
+
+                reader_socket.close();
             }
 
         } catch (Exception e){
