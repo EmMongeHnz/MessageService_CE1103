@@ -16,7 +16,7 @@ import java.net.Socket;
  * Contiene métodos para enviar mensajes y sincronizar el puerto recividor con el servidor.
  *
  * El IP, puerto y nombre de usuario se puede configurar a través del GUI.
- * @author emerson & jimmy
+ * @author emerson, jimmy
  * @version 1.0
  */
 public class Client extends javax.swing.JFrame implements Runnable {

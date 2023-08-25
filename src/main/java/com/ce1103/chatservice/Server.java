@@ -15,7 +15,7 @@ import java.util.ArrayList;
  *La clase Servidor se encarga de brindar la funcionalidad de escuchar conexiones entrantes de clientes,
  * recibir y distribuir mensajes a todos los clientes conectados.
  *
- * @author emerson & jimmy
+ * @author emerson, jimmy
  * @version 1.0
  */
 public class Server extends javax.swing.JFrame implements Runnable {
