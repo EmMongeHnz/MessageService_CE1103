@@ -12,12 +12,18 @@ import java.net.Socket;
  *
  * @author monge
  */
-public class Client extends javax.swing.JFrame {
+public class Client extends javax.swing.JFrame implements Runnable {
 
     /**
      * Creates new form Client
      */
-    public Client() {initComponents();}
+    public Client() {
+        initComponents();
+        Thread server_thread = new Thread(this);
+        server_thread.start();
+    }
+    public static int receivingPort;
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -67,6 +73,11 @@ public class Client extends javax.swing.JFrame {
         label_user.setText("USER:");
 
         button_sync_port.setText("Sync");
+        button_sync_port.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                button_sync_portActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -130,9 +141,10 @@ public class Client extends javax.swing.JFrame {
             Socket socket = new Socket(tf_ip.getText(),intPort);
             DataOutputStream send = new DataOutputStream(socket.getOutputStream());
 
-            send.writeUTF(tf_user.getText() + ": " + tf_message.getText());
+            String portString = Integer.toString(receivingPort);
+            Integer portLen = portString.length();
 
-            messageLog.append("Me: " + tf_message.getText() + "\n\n");
+            send.writeUTF(tf_user.getText() + ": " + tf_message.getText() + portString + Integer.toString(portLen));
 
             tf_message.setText("");
 
@@ -142,6 +154,25 @@ public class Client extends javax.swing.JFrame {
             System.out.println(e);
         }
     }//GEN-LAST:event_button_sendActionPerformed
+
+    private void button_sync_portActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button_sync_portActionPerformed
+        String target_port = tf_port.getText();
+        int intPort = Integer.parseInt(target_port);
+        try{
+            Socket socket = new Socket(tf_ip.getText(),intPort);
+            DataOutputStream send = new DataOutputStream(socket.getOutputStream());
+
+            String portString = Integer.toString(receivingPort);
+            Integer portLen = portString.length();
+
+            send.writeUTF(portString + Integer.toString(portLen));
+
+            socket.close();
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
+    }//GEN-LAST:event_button_sync_portActionPerformed
 
     /**
      * @param args the command line arguments
@@ -190,5 +221,32 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JTextField tf_message;
     private javax.swing.JTextField tf_port;
     private javax.swing.JTextField tf_user;
+
+    @Override
+    public void run() {
+        try{
+            ServerSocket server = new ServerSocket(0);
+            receivingPort = server.getLocalPort();
+
+            while (true) {
+
+                Socket reader_socket = server.accept();
+                DataInputStream read_message = new DataInputStream(reader_socket.getInputStream());
+
+                String received_message = read_message.readUTF();
+
+                if (received_message.isEmpty()) {
+                    //
+                } else {
+                    messageLog.append(received_message + "\n\n");
+                }
+
+                reader_socket.close();
+            }
+
+        } catch (Exception e){
+            System.out.println(e);
+        }
+    }
     // End of variables declaration//GEN-END:variables
 }

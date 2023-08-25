@@ -5,9 +5,11 @@
 package com.ce1103.chatservice;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  *
@@ -20,8 +22,20 @@ public class Server extends javax.swing.JFrame implements Runnable {
      */
     public Server() {
         initComponents();
+        Thread server_thread = new Thread(this);
+        server_thread.start();
     }
 
+    public static boolean newPort(int port, ArrayList<Integer> puertosOn){
+        for (int puerto: puertosOn) {
+            if (puerto == port) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static ArrayList<Integer> activePorts = new ArrayList<Integer>();
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -33,9 +47,6 @@ public class Server extends javax.swing.JFrame implements Runnable {
 
         jScrollPane1 = new javax.swing.JScrollPane();
         messageLog = new javax.swing.JTextArea();
-        tf_port = new javax.swing.JTextField();
-        label_port = new javax.swing.JLabel();
-        button_start = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -45,15 +56,6 @@ public class Server extends javax.swing.JFrame implements Runnable {
         messageLog.setRows(5);
         jScrollPane1.setViewportView(messageLog);
 
-        label_port.setText("PORT:");
-
-        button_start.setText("START");
-        button_start.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                button_startActionPerformed(evt);
-            }
-        });
-
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -62,35 +64,17 @@ public class Server extends javax.swing.JFrame implements Runnable {
                 .addContainerGap()
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 438, Short.MAX_VALUE)
                 .addContainerGap())
-            .addGroup(layout.createSequentialGroup()
-                .addGap(28, 28, 28)
-                .addComponent(label_port, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(tf_port, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(48, 48, 48)
-                .addComponent(button_start)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(12, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(tf_port, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(label_port)
-                    .addComponent(button_start))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 663, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap()
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 704, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
-    private void button_startActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button_startActionPerformed
-        Thread server_thread = new Thread(this);
-        server_thread.start();
-    }//GEN-LAST:event_button_startActionPerformed
 
     /**
      * @param args the command line arguments
@@ -128,11 +112,8 @@ public class Server extends javax.swing.JFrame implements Runnable {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton button_start;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JLabel label_port;
     private javax.swing.JTextArea messageLog;
-    private javax.swing.JTextField tf_port;
     // End of variables declaration//GEN-END:variables
     @Override
     public void run(){
@@ -146,8 +127,37 @@ public class Server extends javax.swing.JFrame implements Runnable {
 
                 String received_message = read_message.readUTF();
 
-                messageLog.append(received_message + "\n\n");
+                char lenPuertoChar = received_message.charAt(received_message.length()-1);
+                Integer lenPuertoInt = Character.getNumericValue(lenPuertoChar);
+                Integer finPuerto = received_message.length()-1;
+                Integer inicioPuerto = finPuerto - lenPuertoInt;
+                String strPuerto = received_message.substring(inicioPuerto, finPuerto);
+                Integer puerto = Integer.parseInt(strPuerto);
+                String strMensaje = received_message.substring(0, inicioPuerto);
 
+                if (newPort(puerto, activePorts)) {
+                    activePorts.add(puerto);
+                }
+
+                for (Integer port_to_send: activePorts) {
+                    try{
+                        Socket socket = new Socket("127.0.0.1", port_to_send);
+                        DataOutputStream send = new DataOutputStream(socket.getOutputStream());
+
+                        send.writeUTF(strMensaje);
+
+                        socket.close();
+
+                    } catch(Exception e){
+                        System.out.println(e);
+                    }
+                }
+                if (strMensaje.isEmpty()) {
+                    //
+                } else {
+                    messageLog.append(strMensaje + "\n\n");
+                }
+                
                 reader_socket.close();
             }
 
