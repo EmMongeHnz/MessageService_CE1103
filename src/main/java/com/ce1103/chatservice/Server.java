@@ -5,20 +5,24 @@
 package com.ce1103.chatservice;
 
 import java.io.DataInputStream;
-import java.io.ObjectInputStream;
+import java.io.DataOutputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 
 /**
+ *Esta clase se encarga de brindar la funcionalidad de escuchar conexiones entrantes de clientes,
+ * recibir y distribuir mensajes a todos los clientes conectados.
  *
- * @author monge
+ * @author monge & jimmy
+ * @version 1.0
  */
 public class Server extends javax.swing.JFrame implements Runnable {
 
     /**
      * Creates new form Server
+     * Inicializa la interfaz gráfica del servidor y los hilos del servidor.
      */
     public Server() {
         initComponents();
@@ -26,6 +30,28 @@ public class Server extends javax.swing.JFrame implements Runnable {
         server_thread.start();
     }
 
+    /**
+     * Revisa si un puerto no está en uso de los puertos activos.
+     *
+     * @param port El puerto a verificar.
+     * @param puertosOn La lista de los puertos activos.
+     * @return true si el puerto no está dentro de la lista, false de lo contrario.
+     */
+
+    public static boolean newPort(int port, ArrayList<Integer> puertosOn){
+        for (int puerto: puertosOn) {
+            if (puerto == port) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Lista de los puertos activos donde están los clientes conectados.
+     */
+
+    public static ArrayList<Integer> activePorts = new ArrayList<Integer>();
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -41,6 +67,8 @@ public class Server extends javax.swing.JFrame implements Runnable {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         messageLog.setColumns(20);
+        messageLog.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        messageLog.setLineWrap(true);
         messageLog.setRows(5);
         jScrollPane1.setViewportView(messageLog);
 
@@ -57,7 +85,7 @@ public class Server extends javax.swing.JFrame implements Runnable {
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                                 .addContainerGap()
-                                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 588, Short.MAX_VALUE)
+                                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 704, Short.MAX_VALUE)
                                 .addContainerGap())
         );
 
@@ -108,29 +136,43 @@ public class Server extends javax.swing.JFrame implements Runnable {
         try{
             ServerSocket server = new ServerSocket(1234);
 
-            String username, message;
-
-            PaqueteEnvio pck_received;
-
             while (true) {
 
                 Socket reader_socket = server.accept();
+                DataInputStream read_message = new DataInputStream(reader_socket.getInputStream());
 
-                ObjectInputStream pck_data = new ObjectInputStream(reader_socket.getInputStream());
-                pck_received= (PaqueteEnvio) pck_data.readObject();
+                String received_message = read_message.readUTF();
 
-                username = pck_received.getUsername();
-                message = pck_received.getMessage();
+                char lenPuertoChar = received_message.charAt(received_message.length()-1);
+                Integer lenPuertoInt = Character.getNumericValue(lenPuertoChar);
+                Integer finPuerto = received_message.length()-1;
+                Integer inicioPuerto = finPuerto - lenPuertoInt;
+                String strPuerto = received_message.substring(inicioPuerto, finPuerto);
+                Integer puerto = Integer.parseInt(strPuerto);
+                String strMensaje = received_message.substring(0, inicioPuerto);
 
-                messageLog.append("\n\n" + username + ": " + message);
+                if (newPort(puerto, activePorts)) {
+                    activePorts.add(puerto);
+                }
 
-                Socket sendBack = new Socket(reader_socket.getInetAddress(), 9090);
+                for (Integer port_to_send: activePorts) {
+                    try{
+                        Socket socket = new Socket("127.0.0.1", port_to_send);
+                        DataOutputStream send = new DataOutputStream(socket.getOutputStream());
 
-                ObjectOutputStream pck_sendBack = new ObjectOutputStream(sendBack.getOutputStream());
+                        send.writeUTF(strMensaje);
 
-                pck_sendBack.writeObject(pck_received);
+                        socket.close();
 
-                sendBack.close();
+                    } catch(Exception e){
+                        System.out.println(e);
+                    }
+                }
+                if (strMensaje.isEmpty()) {
+                    //
+                } else {
+                    messageLog.append(strMensaje + "\n\n");
+                }
 
                 reader_socket.close();
             }

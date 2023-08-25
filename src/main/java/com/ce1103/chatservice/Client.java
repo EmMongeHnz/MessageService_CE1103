@@ -1,25 +1,40 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
+ *
  */
 package com.ce1103.chatservice;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.net.ServerSocket;
 import java.net.Socket;
 /**
+ * La clase Client contiene la interfaz de usuario para que cada usuario
+ * pueda mandar mensajes al servidor y recibir mensajes de otros usuarios.
  *
- * @author monge
+ * Contiene métodos para enviar mensajes y sincronizar el puerto recividor con el servidor.
+ *
+ * El IP, port y nombre de usuario se puede configurar a través del GUI.
+ * @author monge & jimmy
+ * @version 1.0
  */
-public class Client extends javax.swing.JFrame implements Runnable{
+public class Client extends javax.swing.JFrame implements Runnable {
 
     /**
      * Creates new form Client
+     * Inicializa la interfaz gráfica del usuario y los hilos de los clientes.
      */
-    public Client() {initComponents();}
+    public Client() {
+        initComponents();
+        Thread server_thread = new Thread(this);
+        server_thread.start();
+    }
+
+    /**
+     * El puerto donde el cliente recibe los mensajes.
+     */
+    public static int receivingPort;
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -29,9 +44,6 @@ public class Client extends javax.swing.JFrame implements Runnable{
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
-
-        Thread myThread = new Thread(this);
-        myThread.start();
 
         label_IP = new javax.swing.JLabel();
         tf_ip = new javax.swing.JTextField();
@@ -72,6 +84,11 @@ public class Client extends javax.swing.JFrame implements Runnable{
         label_user.setText("USER:");
 
         button_sync_port.setText("Sync");
+        button_sync_port.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                button_sync_portActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -79,15 +96,6 @@ public class Client extends javax.swing.JFrame implements Runnable{
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(layout.createSequentialGroup()
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addContainerGap()
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                        .addComponent(jScrollPane1)
-                                                        .addGroup(layout.createSequentialGroup()
-                                                                .addComponent(tf_message)
-                                                                .addGap(18, 18, 18)
-                                                                .addComponent(button_send)
-                                                                .addGap(31, 31, 31))))
                                         .addGroup(layout.createSequentialGroup()
                                                 .addGap(17, 17, 17)
                                                 .addComponent(label_IP)
@@ -97,13 +105,21 @@ public class Client extends javax.swing.JFrame implements Runnable{
                                                 .addComponent(label_user)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                                 .addComponent(tf_user, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 274, Short.MAX_VALUE)
+                                                .addGap(48, 48, 48)
                                                 .addComponent(label_port, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                                 .addComponent(tf_port, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                .addComponent(button_sync_port)))
-                                .addContainerGap())
+                                                .addComponent(button_sync_port))
+                                        .addGroup(layout.createSequentialGroup()
+                                                .addContainerGap()
+                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addGroup(layout.createSequentialGroup()
+                                                                .addComponent(tf_message, javax.swing.GroupLayout.PREFERRED_SIZE, 560, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                                .addComponent(button_send))
+                                                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 666, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -123,40 +139,65 @@ public class Client extends javax.swing.JFrame implements Runnable{
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                         .addComponent(tf_message, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addComponent(button_send, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addContainerGap(22, Short.MAX_VALUE))
+                                .addContainerGap(35, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    /**
+     * Envia mensajes por el cliente al servidor.
+     * Envia el puerto de recepción al servidor para su sincronización.
+     * @param evt Acción del botón para enviar el mensaje y el puerto al servidor.
+     */
+
     private void button_sendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button_sendActionPerformed
         String target_port = tf_port.getText();
         int intPort = Integer.parseInt(target_port);
         try{
-            Socket socket = new Socket("127.0.0.1",intPort);
+            Socket socket = new Socket(tf_ip.getText(),intPort);
+            DataOutputStream send = new DataOutputStream(socket.getOutputStream());
 
-            PaqueteEnvio data = new PaqueteEnvio();
+            String portString = Integer.toString(receivingPort);
+            Integer portLen = portString.length();
 
-            data.setUsername(tf_user.getText());
-            data.setMessage(tf_message.getText());
+            send.writeUTF(tf_user.getText() + ": " + tf_message.getText() + portString + Integer.toString(portLen));
 
-            ObjectOutputStream pck_data = new ObjectOutputStream(socket.getOutputStream());
-
-            pck_data.writeObject(data);
-
-            //DataOutputStream send = new DataOutputStream(socket.getOutputStream());
-
-            //send.writeUTF(tf_user.getText() + ": " + tf_message.getText());
-
-            //tf_message.setText("");
+            tf_message.setText("");
 
             socket.close();
+
         } catch(Exception e){
             System.out.println(e);
         }
     }//GEN-LAST:event_button_sendActionPerformed
 
     /**
+     * Sincroniza el puerto de recepción del cliente con el servidor.
+     * Envía la informacioón del puerto de recepción al servidor para la sincronización.
+     * @param evt Botón para sincronizar el puerto receptor con el servidor.
+     */
+    private void button_sync_portActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button_sync_portActionPerformed
+        String target_port = tf_port.getText();
+        int intPort = Integer.parseInt(target_port);
+        try{
+            Socket socket = new Socket(tf_ip.getText(),intPort);
+            DataOutputStream send = new DataOutputStream(socket.getOutputStream());
+
+            String portString = Integer.toString(receivingPort);
+            Integer portLen = portString.length();
+
+            send.writeUTF(portString + Integer.toString(portLen));
+
+            socket.close();
+
+        } catch(Exception e){
+            System.out.println(e);
+        }
+    }//GEN-LAST:event_button_sync_portActionPerformed
+
+    /**
+     * El método main que empieza la aplicación del cliente.
      * @param args the command line arguments
      */
     public static void main(String args[]) {
@@ -204,51 +245,35 @@ public class Client extends javax.swing.JFrame implements Runnable{
     private javax.swing.JTextField tf_port;
     private javax.swing.JTextField tf_user;
 
+    /**
+     * Este método es reponsable de la funcionalidad de los clientes.
+     * Recibe los mensajes del servidor y lo muestra en el messageLog.
+     */
     @Override
     public void run() {
-
         try{
+            ServerSocket server = new ServerSocket(0);
+            receivingPort = server.getLocalPort();
 
-            ServerSocket client_socket = new ServerSocket(9090);
+            while (true) {
 
-            PaqueteEnvio pck_received;
+                Socket reader_socket = server.accept();
+                DataInputStream read_message = new DataInputStream(reader_socket.getInputStream());
 
-            while(true){
+                String received_message = read_message.readUTF();
 
-                Socket client = client_socket.accept();
+                if (received_message.isEmpty()) {
+                    //
+                } else {
+                    messageLog.append(received_message + "\n\n");
+                }
 
-                ObjectInputStream inputFlow = new ObjectInputStream(client.getInputStream());
-
-                pck_received =(PaqueteEnvio) inputFlow.readObject();
-
-                messageLog.append("\n\n" + pck_received.getUsername() + ": " + pck_received.getMessage());
+                reader_socket.close();
             }
 
-
-        } catch(Exception e){
+        } catch (Exception e){
             System.out.println(e);
         }
-
     }
     // End of variables declaration//GEN-END:variables
-}
-
-class PaqueteEnvio implements Serializable {
-    private String username, message;
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
 }
